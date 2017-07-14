@@ -1,10 +1,14 @@
-﻿$OrigVerbosePreference = $VerbosePreference
+$OrigVerbosePreference = $VerbosePreference
 $VerbosePreference = "continue"
 
 $Results = @()
 
 # Get Computer Name
 $ComputerName = $env:COMPUTERNAME
+
+# Get Computer Mopdel
+$ComputerModel = Get-WmiObject Win32_ComputerSystem | Select-Object -ExpandProperty Model
+
 
 # Get System Drive Details
 $DriveInfo = Get-WmiObject Win32_DiskDrive | % {
@@ -22,6 +26,7 @@ $DriveInfo = Get-WmiObject Win32_DiskDrive | % {
         Disk        = $disk.DeviceID
         DiskSize    = $disk.Size
         DiskModel   = $disk.Model
+        DiskInterface = $disk.InterfaceType
         Partition   = $partition.Name
         RawSize     = $partition.Size
         DriveLetter = $_.DeviceID
@@ -43,8 +48,10 @@ $matches = ([regex]"Disk\s+Sequential\s+(\d+\.\d+)\s+Read\s+(\d+\.\d+)\s+(\S+)\s
 if ($matches) {
     $CustomEvent = New-Object -TypeName PSObject
     $CustomEvent | Add-Member -Type NoteProperty -Name "Computer" -Value $ComputerName
+    $CustomEvent | Add-Member -Type NoteProperty -Name "ComputerModel" -Value $ComputerModel
     $CustomEvent | Add-Member -Type NoteProperty -Name "Test" -Value "Disk Sequential"
     $CustomEvent | Add-Member -Type NoteProperty -Name "DriveLetter" -Value $DriveInfo.DriveLetter
+    $CustomEvent | Add-Member -Type NoteProperty -Name "InterfaceType" -Value $DriveInfo.DiskInterface
     $CustomEvent | Add-Member -Type NoteProperty -Name "DiskModel" -Value $DriveInfo.DiskModel
     $CustomEvent | Add-Member -Type NoteProperty -Name "Size" -Value $matches.Groups[1]
     $CustomEvent | Add-Member -Type NoteProperty -Name "Speed" -Value $matches.Groups[2]
@@ -58,8 +65,10 @@ $matches = ([regex]"Disk\s+Random\s+(\d+\.\d+)\s+Read\s+(\d+\.\d+)\s+(\S+)\s+(\d
 if ($matches) {
     $CustomEvent = New-Object -TypeName PSObject
     $CustomEvent | Add-Member -Type NoteProperty -Name "Computer" -Value $ComputerName
+    $CustomEvent | Add-Member -Type NoteProperty -Name "ComputerModel" -Value $ComputerModel
     $CustomEvent | Add-Member -Type NoteProperty -Name "Test" -Value "Disk Random"
     $CustomEvent | Add-Member -Type NoteProperty -Name "DriveLetter" -Value $DriveInfo.DriveLetter
+    $CustomEvent | Add-Member -Type NoteProperty -Name "InterfaceType" -Value $DriveInfo.DiskInterface
     $CustomEvent | Add-Member -Type NoteProperty -Name "DiskModel" -Value $DriveInfo.DiskModel
     $CustomEvent | Add-Member -Type NoteProperty -Name "Size" -Value $matches.Groups[1]
     $CustomEvent | Add-Member -Type NoteProperty -Name "Speed" -Value $matches.Groups[2]
