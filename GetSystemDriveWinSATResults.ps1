@@ -84,4 +84,4 @@ if ($matches) {
 
 $Results | Out-GridView
 
-$VerbosePreference = $OrigVerbosePreference`
+$VerbosePreference = $OrigVerbosePreference
