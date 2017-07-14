@@ -9,6 +9,8 @@ $ComputerName = $env:COMPUTERNAME
 # Get Computer Mopdel
 $ComputerModel = Get-WmiObject Win32_ComputerSystem | Select-Object -ExpandProperty Model
 
+$StoreNVMEStatus = (Get-Service StorNVME).Status
+
 
 # Get System Drive Details
 $DriveInfo = Get-WmiObject Win32_DiskDrive | % {
@@ -57,6 +59,8 @@ if ($matches) {
     $CustomEvent | Add-Member -Type NoteProperty -Name "Speed" -Value $matches.Groups[2]
     $CustomEvent | Add-Member -Type NoteProperty -Name "Units" -Value $matches.Groups[3]
     $CustomEvent | Add-Member -Type NoteProperty -Name "Score" -Value $matches.Groups[4]
+    $CustomEvent | Add-Member -Type NoteProperty -Name "StoreNVMESvc" -Value $StoreNVMEStatus
+
     $Results += $CustomEvent
 }
 
@@ -74,9 +78,10 @@ if ($matches) {
     $CustomEvent | Add-Member -Type NoteProperty -Name "Speed" -Value $matches.Groups[2]
     $CustomEvent | Add-Member -Type NoteProperty -Name "Units" -Value $matches.Groups[3]
     $CustomEvent | Add-Member -Type NoteProperty -Name "Score" -Value $matches.Groups[4]
+    $CustomEvent | Add-Member -Type NoteProperty -Name "StoreNVMESvc" -Value $StoreNVMEStatus
     $Results += $CustomEvent
 }
 
 $Results | Out-GridView
 
-$VerbosePreference = $OrigVerbosePreference
+$VerbosePreference = $OrigVerbosePreference`
