@@ -1,4 +1,4 @@
-param($DesiredScheme="Balanced")
+param($DesiredScheme)
 
 ### DEBUGGING
 $OrigVerbosePreference = $VerbosePreference
@@ -9,7 +9,7 @@ $DebugPreference = "Continue"
 ### USAGE
 $BuiltInPowerSchemes = @("Power saver","Balanced","High performance")
 if (!($BuiltInPowerSchemes  -imatch "(^$($DesiredScheme)$)")) {
-    write-host "Invalid or missing argment.  Expected values:"
+    write-host "Optional Parameters:"
     foreach ($BuiltInPowerScheme in $BuiltInPowerSchemes) {
         write-host "`t-DesiredScheme `"$($BuiltInPowerScheme)`""
     }
