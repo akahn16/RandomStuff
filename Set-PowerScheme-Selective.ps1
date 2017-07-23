@@ -1,8 +1,28 @@
+param($DesiredScheme="High Performance2")
+
+### DEBUGGING
 $OrigVerbosePreference = $VerbosePreference
 $OrigDebugPreference = $DebugPreference
 $VerbosePreference = "Continue"
 $DebugPreference = "Continue"
 
+### USAGE
+$BuiltInPowerSchemes = @("Power saver","Balanced","High performance")
+if (!($BuiltInPowerSchemes  -imatch "(^$($DesiredScheme)$)")) {
+    write-host "Invalid or missing argment.  Expected values:"
+    foreach ($BuiltInPowerScheme in $BuiltInPowerSchemes) {
+        write-host "`t-DesiredScheme `"$($BuiltInPowerScheme)`""
+    }
+    exit
+}
+
+
+### CONSTANTS
+$ChassisBlacklist = @("Portable","Laptop_Disabled","Notebook","Hand Held","Sub Notebook")
+$ModelBlacklist = @("Latitude E6510_Disabled")
+
+
+### FUNCTIONS
 function Get-PowerScheme-Active {
     $output = & powercfg.exe LIST
     $output = $output -imatch "(^Power Scheme GUID.*)\*$"
@@ -75,22 +95,28 @@ function Get-ComputerSystem-Model {
     return $ComputerSystemModel
 }
 
-$BuiltInPowerSchemes = @("Power saver","Balanced","High performance")
-$ChassisBlacklist = @("Portable","Laptop","Notebook","Hand Held","Sub Notebook")
-$ModelBlacklist = @("Latitude E6510")
+
+### MAIN
+$ScriptName = "SetPowerScheme"
+New-EventLog –LogName Application –Source $ScriptName -ErrorAction SilentlyContinue
 
 $ChassisTypeText = Get-ChasisType-Desc
 $ComputerSystemModel = Get-ComputerSystem-Model
 
-$DesiredScheme = "High performance"
-
 if (($ChassisBlacklist -imatch "(^$($ChassisTypeText)$)") -or ($ModelBlacklist -imatch "(^$($ComputerSystemModel)$)")) {
-    write-host "Skipped changing power scheme to [$($DesiredScheme)] on system model [$($ComputerSystemModel)] with chassis type [$($ChassisTypeText)] due to model or chassis blacklist."
+    $Message = "Skipped changing power scheme to [$($DesiredScheme)] on system model [$($ComputerSystemModel)] with chassis type [$($ChassisTypeText)] due to model or chassis blacklist."
+    write-host $Message
+    Write-EventLog -LogName Application -Source $ScriptName -EventID 1000 -EntryType Information -Message $Message 
+
 } else {    
-    write-host "Changing power scheme to [$($DesiredScheme)] on system model [$($ComputerSystemModel)] with chassis type [$($ChassisTypeText)]."
+    $Message = "Changing power scheme to [$($DesiredScheme)] on system model [$($ComputerSystemModel)] with chassis type [$($ChassisTypeText)]."
+    write-host $Message    
+    Write-EventLog -LogName Application -Source $ScriptName -EventID 1001 -EntryType Information -Message $Message
     $Scheme = Set-PowerScheme -SchemeName $DesiredScheme
 }
 
+
+### CLEANUP
 $VerbosePreference = $OrigVerbosePreference
 $DebugPreference = $OrigDebugPreference
 
