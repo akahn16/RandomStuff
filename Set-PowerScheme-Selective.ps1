@@ -1,4 +1,4 @@
-param($DesiredScheme="High Performance2")
+param($DesiredScheme="Balanced")
 
 ### DEBUGGING
 $OrigVerbosePreference = $VerbosePreference
