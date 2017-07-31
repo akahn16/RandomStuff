@@ -114,7 +114,12 @@ if (!($matchinglines)) {
     if ($action -ieq "add") {
         Write-host "-entry added."
         set-hostfile-entry -hostfile $hostfile -ip $ip -name $name
+    }   
+    if ($action -ieq "remove") {
+        Write-host "-entry not present."
+        set-hostfile-entry -hostfile $hostfile -ip $ip -name $name
     }    
+     
 } else {
     foreach ($matchingline in $matchinglines) {
 
