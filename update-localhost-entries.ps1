@@ -1,27 +1,51 @@
-﻿$OrigDebugPreference = $DebugPreference
-$DebugPreference = "Continue"
+###########################################################
+### PARAMETERS
+###########################################################
 
-$OrigVerbosePreference = $VerbosePreference
-$VerbosePreference = "Continue"
+Param
+(
+    # Param1 help description
+    [Parameter(Mandatory=$true, 
+                Position=0,
+                ParameterSetName='action')]
+    [ValidateNotNull()]
+    [ValidateNotNullOrEmpty()]
+    [ValidateSet("remove", "add")]
+    $action,
 
-$hostfilepath = "C:\Windows\System32\drivers\etc\hosts"
-if (!(Test-Path -Path $hostfile)) {
-    Write-Host "hosts file [$($hostfile)] not found; exiting."
-    exit
-}
+    # Param2 help description
+    [ValidatePattern("\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}")]
+    [ValidateLength(6,15)]
+    [ValidateNotNull()]
+    [ValidateNotNullOrEmpty()]
+    [String]
+    $ip,
+    
+    # Param3 help description
+    [ValidatePattern("\w+")]
+    [ValidateNotNull()]
+    [ValidateNotNullOrEmpty()]
+    [String]
+    $name
+)
+
+
+###########################################################
+### FUNCTIONS
+###########################################################
 
 function check-hostfile-entry {
-    param($hostfilepath,$ip,$name)
+    param($hostfile,$ip,$name)
 
     # initialize variable to return
-    $linematch = $false
+    $linematch = @()
 
     # check to see if entry pattern is present in hosts file
-    $hostfilecontent = Get-Content -Path $hostfilepath
+    $hostfilecontent = Get-Content -Path $hostfile
     $matchresults = $hostfilecontent -imatch "($($ip).*$($name))"
 
     if ($matchresults)  {
-        Write-verbose "found $($matchresults.count) possible match(es) in hostfile already."
+        Write-verbose "found $($matchresults.count) pattern match(es) already in hostfile."
     
         # enumerate each possible match
         foreach ($matchresult in $matchresults) {           
@@ -36,70 +60,71 @@ function check-hostfile-entry {
 
                 # check to ensure that exact entry is not commented (first non-whitepace is comment char)
                 if (!($matchresulttrimmed -imatch "(\s*#)")) {
-                    Write-verbose "entry [$($matchresult)] is not commented."
-                    $entryExactAndActive = $true
+                    Write-verbose "entry [$($matchresult)] is active (not commented)."
+                    $linematch += $matchresult
+                } else {
+                    Write-verbose "entry [$($matchresult)] is not active (commented)."
                 }
-            }           
+            } else {
+                Write-verbose "entry [$($matchresult)] is not an exact match on name."
+            }
         }
     }
-    return $linematch = $matchresult
+    return $linematch
 }
 
 function set-hostfile-entry {
-    param($hostfilepath,$ip,$name)
-    Add-Content -Path $hostfilepath -Value "$($ip)`t$($name)"
+    param($hostfile,$ip,$name)
+    Add-Content -Path $hostfile -Value "$($ip)`t$($name)"
 }
 
 function remove-hostfile-entry {
-    param($hostfilepath,$linetoremove)
+    param($hostfile,$linetoremove)
 
-    $hostfilecontent = Get-Content -Path $hostfilepath
-    remove-item -path $hostfilepath -Force
+    $hostfilecontent = Get-Content -Path $hostfile
+    remove-item -path $hostfile -Force
 
     foreach ($line in $hostfilecontent) {
         if ($line -inotmatch $linetoremove) {
-            Add-Content -Path $hostfilepath -Value $line -Force
+            Add-Content -Path $hostfile -Value $line -Force
         }        
     }
 }
 
+###########################################################
+### MAIN
+###########################################################
 
-# array of entries in "ip;name;action" format.  valid actions are "add" or "remove"
-$entries=@(
- "255.255.255.255;wpad;add"
- "255.255.255.255;wpad2;add"
- "255.255.255.255;wpad3;remove"
- )
+$OrigDebugPreference = $DebugPreference
+$DebugPreference = "Continue"
 
-# loop through desired entries
-Write-Verbose "processing $($entries.count) entries."
-$counter = 0
-foreach ($entry in $entries) {
-    $counter++
-    $ip = ($entry.split(";")[0]).trim()
-    $name = ($entry.split(";")[1]).trim()
-    $action = ($entry.split(";")[2]).trim()
+$OrigVerbosePreference = $VerbosePreference
+$VerbosePreference = "Continue"
 
+$hostfile = "C:\Windows\System32\drivers\etc\hosts"
+if (!(Test-Path -Path $hostfile)) {
+    Write-Host "hosts file [$($hostfile)] not found; exiting."
+    exit
+}
 
-    Write-host "processing entry $($counter) of $($entries.count) [$($entry)]"
+# check to see if entry is already in hostfile
+$matchinglines = check-hostfile-entry -hostfile $hostfile -ip $ip -name $name
 
-    # check to see if entry is already in hostfile
-    $matchingline = check-hostfile-entry -hostfilepath $hostfilepath -ip $ip -name $name
-    if (!($matchingline)) {
+if (!($matchinglines)) {
+    if ($action -ieq "add") {
+        Write-host "-entry added."
+        set-hostfile-entry -hostfile $hostfile -ip $ip -name $name
+    }    
+} else {
+    foreach ($matchingline in $matchinglines) {
+
         if ($action -ieq "remove") {
-            Write-host "-entry not present; skipping."
+            Write-host "-entry removed."
+            remove-hostfile-entry -hostfile $hostfile -linetoremove $matchingline
         }
+
         if ($action -ieq "add") {
-            Write-host "-entry is not present; adding."
-            set-hostfile-entry -hostfilepath $hostfilepath -ip $ip -name $name
-        }
-    } else {
-        if ($action -ieq "remove") {
-            Write-host "-entry is present; removing."
-            remove-hostfile-entry -hostfilepath $hostfilepath -linetoremove $matchingline
-        }
-        if ($action -ieq "add") {
-            Write-host "-entry is already present; skipping."
+            Write-host "-entry already present."
         }
     }
 }
