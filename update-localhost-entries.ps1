@@ -30,6 +30,7 @@ Param
 )
 
 
+
 ###########################################################
 ### FUNCTIONS
 ###########################################################
@@ -91,6 +92,8 @@ function remove-hostfile-entry {
     }
 }
 
+
+
 ###########################################################
 ### MAIN
 ###########################################################
@@ -108,24 +111,24 @@ if (!(Test-Path -Path $hostfile)) {
 }
 
 # check to see if entry is already in hostfile
+$matchinglines = @()
 $matchinglines = check-hostfile-entry -hostfile $hostfile -ip $ip -name $name
 
 if (!($matchinglines)) {
     if ($action -ieq "add") {
-        Write-host "-entry added."
         set-hostfile-entry -hostfile $hostfile -ip $ip -name $name
+        Write-host "-entry added."
     }   
     if ($action -ieq "remove") {
         Write-host "-entry not present."
-        set-hostfile-entry -hostfile $hostfile -ip $ip -name $name
     }    
      
 } else {
     foreach ($matchingline in $matchinglines) {
 
         if ($action -ieq "remove") {
-            Write-host "-entry removed."
             remove-hostfile-entry -hostfile $hostfile -linetoremove $matchingline
+            Write-host "-entry removed."
         }
 
         if ($action -ieq "add") {
