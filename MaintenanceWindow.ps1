@@ -18,7 +18,15 @@ $DebugPreference = "Continue"
 #>
 
 # Verify we are initiated by a scheduled task between 00:00 and 05:00 (done)
-[int]$hour = get-date -format HH$maintHourStart = 0$maintHourEnd = 5if (!($hour -ge $maintHourStart -and $hour -lt $maintHourEnd)) {     write-host "script has been executed outside of maintenance window, exiting."    exit}
+[int]$hour = get-date -format HH
+$maintHourStart = 0
+$maintHourEnd = 5
+
+#
+#if (!($hour -ge $maintHourStart -and $hour -lt $maintHourEnd)) { 
+#    write-host "script has been executed outside of maintenance window, exiting."
+#    exit
+#}
 
 
 # Verify that host has not rebooted already within maintenance window (done)
@@ -38,7 +46,12 @@ if ($LastBootupTime -le $secondsSinceMidnight) {
 # Sleep random number of seconds between now and 0500 (done)
 $SecondsUntilMaintEnd = [int](New-TimeSpan -start (Get-Date) -end "0$($maintHourEnd):00").TotalSeconds
 Write-Verbose "There are $($SecondsUntilMaintEnd) seconds until end of maintenance window"
-$RandomWait = Get-Random -Minimum 0 -Maximum $SecondsUntilMaintEnd
+    #Random time generator over a 5 hour period
+    $RandomHour = Get-Random -Minimum 0 -Maximum 4
+    $RandomMinute = Get-Random -Minimum 0 -Maximum 59
+    $RandomSecond = Get-Random -Minimum 0 -Maximum 59
+    #$RandomTime is in seconds
+    $RandomTime = (($RandomHour * 3600) + ($RandomMinute * 60) + ($RandomSecond * 1))
 
 # overide random wait for testing purposes
 if ($DebugPreference -eq "Continue") {
@@ -56,10 +69,16 @@ do
 }
 until ($counter -eq $RandomWait)
 
-while((get-process) -match "(explorer2)") {       write-host "windows shell (explorer) is running; a user is logged on. Waiting 60 seconds."    sleep 60}
+while((get-process) -match "(explorer2)") {   
+    write-host "windows shell (explorer) is running; a user is logged on. Waiting 60 seconds."
+    sleep 60
+}
 
 # wait up to 5 minutes for any setups to complete.
-while((get-process) -match "(msiexec|setup)") {       write-host "an install package is executing, waiting 60 seconds."    sleep 60}
+while((get-process) -match "(msiexec|setup)") {   
+    write-host "an install package is executing, waiting 60 seconds."
+    sleep 60
+}
 
 # Cleanup debug related variables
 $VerbosePreference = $OrigVerbosePreference
@@ -72,5 +91,6 @@ write-host "initiating computer group policy update."
 
 #write-host "restarting computer if gpupdate did already do so."
 #Restart-Computer -Force
-
+
+
 
